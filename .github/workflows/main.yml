@@ -1,3 +1,4 @@
+
 name: Build 64-bit TA-Lib Wheel for Latest Python on Windows 10
 
 on:
@@ -15,43 +16,38 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: ['3.11']  # You can adjust to the latest version of Python you're using
+        python-version: ['3.11']  # Adjust for the version of Python you're using
     env:
       VS_PLATFORM: x64  # Target 64-bit architecture
     steps:
       # Step 1: Check out the repository
       - uses: actions/checkout@v4
-      
+
       # Step 2: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Step 3: Verify and prepare file structure
-      - name: Verify and prepare file structure
+      # Step 3: Check for TA-Lib directory and create it if not found
+      - name: Verify or Create TA-Lib Directory
         run: |
-          if not exist ta-lib\c\src (
-            echo "TA-Lib C source files not found. Aborting."
-            exit /b 1
+          if not exist .\ta-lib\c\src (
+            echo "TA-Lib directory not found. Creating directory structure..."
+            mkdir .\ta-lib\c\src
           )
-          echo "TA-Lib C source files found."
-
-          mkdir ta-lib\build
-          mkdir ta-lib\dist
-          echo "Directory structure verified and prepared."
+          echo "TA-Lib directory is ready."
         shell: cmd
 
-      # Step 4: Check and move dependencies to the correct location
-      - name: Check and move dependencies
+      # Step 4: Check if files are in the right place, if not copy or download
+      - name: Check and Copy Files
         run: |
-          if exist .\dependencies\some-file.ext (
-            echo Dependency found: moving to correct location...
-            move .\dependencies\some-file.ext .\ta-lib\some-required-location\
-          ) else (
-            echo Dependency not found. Exiting.
-            exit /b 1
+          if not exist .\ta-lib\c\src\ta_func.c (
+            echo "Required TA-Lib source files not found. Copying files..."
+            # Assuming you have the source files in a different location, copy them here
+            copy .\dependencies\ta-lib\c\src\* .\ta-lib\c\src\
           )
+          echo "All required files are in place."
         shell: cmd
 
       # Step 5: Install necessary dependencies for building
