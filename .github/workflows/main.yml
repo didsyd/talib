@@ -28,38 +28,46 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Step 3: Ensure correct file paths and structures
+      # Step 3: Verify and prepare file structure
       - name: Verify and prepare file structure
         run: |
-          # Check for TA-Lib C source files
           if not exist ta-lib\c\src (
-              echo "TA-Lib C source files not found. Aborting."
-              exit 1
+            echo "TA-Lib C source files not found. Aborting."
+            exit /b 1
           )
           echo "TA-Lib C source files found."
 
-          # Ensure proper directory structure for build
-          mkdir -p ta-lib\build
-          mkdir -p ta-lib\dist
+          mkdir ta-lib\build
+          mkdir ta-lib\dist
           echo "Directory structure verified and prepared."
+        shell: cmd
 
-      # Step 4: Install necessary dependencies for building
+      # Step 4: Check and move dependencies to the correct location
+      - name: Check and move dependencies
+        run: |
+          if exist .\dependencies\some-file.ext (
+            echo Dependency found: moving to correct location...
+            move .\dependencies\some-file.ext .\ta-lib\some-required-location\
+          ) else (
+            echo Dependency not found. Exiting.
+            exit /b 1
+          )
+        shell: cmd
+
+      # Step 5: Install necessary dependencies for building
       - name: Install Build Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel numpy Cython  # Ensure required tools are installed
-          pip install pytest  # For running tests (optional)
+          pip install setuptools wheel numpy Cython
+          pip install pytest
 
-      # Step 5: Build the TA-Lib wheel
+      # Step 6: Build the TA-Lib wheel
       - name: Build TA-Lib Wheel
         run: |
-          # Ensure correct library paths for Windows and MSBuild environment
           set LIB="ta-lib\\c\\ide\\vs2022\\lib_proj\\x64;$LIB"
-          
-          # Build the TA-Lib wheel
           python setup.py bdist_wheel
 
-      # Step 6: Upload the built wheel as an artifact
+      # Step 7: Upload the built wheel as an artifact
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
