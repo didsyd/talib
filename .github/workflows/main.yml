@@ -28,19 +28,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Step 3: Download TA-Lib Source Files
+      # Step 3: Download TA-Lib Source Files (using .zip)
       - name: Download TA-Lib source files
         run: |
           echo "Downloading TA-Lib source files..."
-          powershell -Command "Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz -OutFile ta-lib-src.tar.gz"
-          powershell -Command "tar -xvzf ta-lib-src.tar.gz"
+          powershell -Command "Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip"
+          powershell -Command "Expand-Archive -Path ta-lib-src.zip -DestinationPath ."
           echo "TA-Lib source files downloaded and extracted."
 
       # Step 4: Move TA-Lib source files to expected directory structure
       - name: Organize TA-Lib source files
         run: |
           mkdir -p ta-lib/c/src
-          move ta-lib-0.4.0-src/* ta-lib/c/src
+          move ta-lib-0.4.0-msvc/* ta-lib/c/src
           echo "TA-Lib files moved to correct location."
 
       # Step 5: Install build dependencies
