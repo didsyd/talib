@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: ['3.11']  # Adjust for the version of Python you're using
+        python-version: ['3.11']  # Adjust based on the Python version you need
     env:
       VS_PLATFORM: x64  # Target 64-bit architecture
     steps:
@@ -28,28 +28,22 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Step 3: Verify or Create TA-Lib Directory
-      - name: Verify or Create TA-Lib Directory
+      # Step 3: Download TA-Lib Source Files
+      - name: Download TA-Lib source files
         run: |
-          if not exist .\ta-lib\c\src (
-            echo "TA-Lib directory not found. Creating directory structure..."
-            mkdir .\ta-lib\c\src
-          )
-          echo "TA-Lib directory is ready."
-        shell: cmd
+          echo "Downloading TA-Lib source files..."
+          powershell -Command "Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz -OutFile ta-lib-src.tar.gz"
+          powershell -Command "tar -xvzf ta-lib-src.tar.gz"
+          echo "TA-Lib source files downloaded and extracted."
 
-      # Step 4: Check and Download TA-Lib Source Files if Missing
-      - name: Download TA-Lib source files if missing
+      # Step 4: Move TA-Lib source files to expected directory structure
+      - name: Organize TA-Lib source files
         run: |
-          if not exist .\ta-lib\c\src\ta_func.c (
-            echo "TA-Lib source files not found. Downloading..."
-            powershell -Command "Invoke-WebRequest -Uri https://link-to-your-reliable-source/ta-lib-sources.zip -OutFile ta-lib.zip"
-            powershell -Command "Expand-Archive -Path ta-lib.zip -DestinationPath ."
-            echo "TA-Lib files downloaded and extracted."
-          )
-        shell: cmd
+          mkdir -p ta-lib/c/src
+          move ta-lib-0.4.0-src/* ta-lib/c/src
+          echo "TA-Lib files moved to correct location."
 
-      # Step 5: Install necessary dependencies for building
+      # Step 5: Install build dependencies
       - name: Install Build Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -61,6 +55,7 @@ jobs:
         run: |
           set LIB="ta-lib\\c\\ide\\vs2022\\lib_proj\\x64;$LIB"
           python setup.py bdist_wheel
+        working-directory: ta-lib/c/src
 
       # Step 7: Upload the built wheel as an artifact
       - name: Upload Wheel Artifact
