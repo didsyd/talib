@@ -1,4 +1,3 @@
-
 name: Build 64-bit TA-Lib Wheel for Latest Python on Windows 10
 
 on:
