@@ -38,15 +38,15 @@ jobs:
           echo "TA-Lib directory is ready."
         shell: cmd
 
-      # Step 4: Check if files are in the right place, if not, copy them
-      - name: Check and Copy Files
+      # Step 4: Download TA-Lib source files if missing
+      - name: Download TA-Lib source files if missing
         run: |
           if not exist .\ta-lib\c\src\ta_func.c (
-            echo "Required TA-Lib source files not found. Copying files..."
-            rem Assuming you have the source files in a different location, copy them here
-            copy .\dependencies\ta-lib\c\src\* .\ta-lib\c\src\
+            echo "TA-Lib source files not found. Downloading..."
+            powershell -Command "Invoke-WebRequest -Uri https://your-link-to-ta-lib-sources.zip -OutFile ta-lib.zip"
+            powershell -Command "Expand-Archive -Path ta-lib.zip -DestinationPath ."
+            echo "TA-Lib files downloaded and extracted."
           )
-          echo "All required files are in place."
         shell: cmd
 
       # Step 5: Install necessary dependencies for building
