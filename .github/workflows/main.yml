@@ -34,18 +34,23 @@ jobs:
           echo "Downloading TA-Lib source files..."
           powershell -Command "Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip"
           if (Test-Path ta-lib-src.zip) {
-            echo "TA-Lib source files downloaded successfully."
+            echo 'TA-Lib source files downloaded successfully.'
           } else {
-            echo "Error: TA-Lib source files failed to download."
+            Write-Error 'Error: TA-Lib source files failed to download.'
             exit 1
+          }
 
       # Step 4: Extract TA-Lib Source Files
       - name: Extract TA-Lib source files
         run: |
           echo "Extracting TA-Lib source files..."
           powershell -Command "Expand-Archive -Path ta-lib-src.zip -DestinationPath ."
-          echo "Listing the extracted files:"
-          Get-ChildItem -Recurse
+          if (Test-Path ta-lib-0.4.0-msvc) {
+            echo 'TA-Lib source files extracted successfully.'
+          } else {
+            Write-Error 'Error: Failed to extract TA-Lib source files.'
+            exit 1
+          }
 
       # Step 5: Move TA-Lib source files to the expected directory structure
       - name: Organize TA-Lib source files
