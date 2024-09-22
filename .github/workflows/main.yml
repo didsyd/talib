@@ -38,12 +38,12 @@ jobs:
           echo "TA-Lib directory is ready."
         shell: cmd
 
-      # Step 4: Download TA-Lib source files if missing
+      # Step 4: Check and Download TA-Lib Source Files if Missing
       - name: Download TA-Lib source files if missing
         run: |
           if not exist .\ta-lib\c\src\ta_func.c (
             echo "TA-Lib source files not found. Downloading..."
-            powershell -Command "Invoke-WebRequest -Uri https://your-link-to-ta-lib-sources.zip -OutFile ta-lib.zip"
+            powershell -Command "Invoke-WebRequest -Uri https://link-to-your-reliable-source/ta-lib-sources.zip -OutFile ta-lib.zip"
             powershell -Command "Expand-Archive -Path ta-lib.zip -DestinationPath ."
             echo "TA-Lib files downloaded and extracted."
           )
