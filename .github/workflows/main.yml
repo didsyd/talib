@@ -41,7 +41,7 @@ jobs:
             echo "exists=true" >> $env:GITHUB_ENV
           } else {
             echo 'TA-Lib source files not found, proceeding to download.'
-            echo "exists=false" >> $env:GITHUB_ENV
+            echo "exists=false" >> $env:GITHUB_ENV }
         shell: pwsh
 
       # Step 5: Download TA-Lib source files if they don't exist
