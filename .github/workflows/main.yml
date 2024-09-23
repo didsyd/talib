@@ -73,15 +73,24 @@ jobs:
       # Step 6: Extract TA-Lib Source Files using 7zip
       - name: Extract TA-Lib source files
         if: env.exists == 'false'
-        run: |
-          echo "Extracting TA-Lib source files..."
-          7z x ta-lib-src.zip -o.
-          if (Test-Path ./ta-lib-0.4.0-msvc) {
-            echo 'TA-Lib source files extracted successfully.'
-          } else {
-            Write-Error 'Error: Failed to extract TA-Lib source files.'
-            exit 1
-          }
+Run: |
+  echo "Extracting TA-Lib source files..."
+  
+  # Use PowerShell's native archive extraction
+  Expand-Archive -Path ta-lib-src.zip -DestinationPath ./ta-lib-0.4.0-msvc
+  
+  # Check if the extraction was successful
+  if (Test-Path ./ta-lib-0.4.0-msvc) {
+    echo 'TA-Lib source files extracted successfully.'
+  } else {
+    Write-Error 'Error: Failed to extract TA-Lib source files.'
+    exit 1
+  }
+shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+env:
+  VS_PLATFORM: x64
+  pythonLocation: C:\hostedtoolcache\windows\Python\3.11.9\x64
+
         shell: pwsh
 
       # Step 7: Move TA-Lib source files to the expected directory structure
