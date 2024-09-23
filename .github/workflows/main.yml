@@ -30,6 +30,7 @@ jobs:
         } else {
           Write-Error 'Error: Failed to download TA-Lib source files.'
           exit 1
+          }
       shell: pwsh
 
     - name: Extract TA-Lib source files
@@ -53,6 +54,7 @@ jobs:
         } else {
           Write-Error 'Error: Failed to extract TA-Lib source files.'
           exit 1
+          }
       shell: pwsh
 
     - name: Move TA-Lib files
@@ -70,4 +72,5 @@ jobs:
         } else {
           Write-Error 'Error: TA-Lib setup failed.'
           exit 1
+          }
       shell: pwsh
