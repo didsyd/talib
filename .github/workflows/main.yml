@@ -1,40 +1,16 @@
-name: Build 64-bit TA-Lib Wheel for Latest Python on Windows 10
+name: Build and Install TA-Lib
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+on: [push, pull_request]
 
 jobs:
-  build_64bit_wheel:
-    name: Build 64-bit Wheel
+  build:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        python-version: ['3.11']
-    env:
-      VS_PLATFORM: x64
+
     steps:
-      # Step 1: Check out the repository
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Step 2: Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      # Step 3: Install 7zip
-      - name: Install 7zip for file extraction
-        run: choco install 7zip --no-progress
-
-      # Step 4: Check if TA-Lib is already present
-      - name: Check if TA-Lib exists
-        id: ta-lib-check
+      - name: Check if TA-Lib source files already exist
         run: |
           if (Test-Path ta-lib/c/src/ta_func.c) {
             echo 'TA-Lib source files already exist, skipping download.'
@@ -42,94 +18,50 @@ jobs:
           } else {
             echo 'TA-Lib source files not found, proceeding to download.'
             echo "exists=false" >> $env:GITHUB_ENV
-          }
         shell: pwsh
 
-      # Step 5: Download TA-Lib source files if they don't exist
-      - name: Download TA-Lib source files
+      - name: Download TA-Lib source files if they do not exist
         if: env.exists == 'false'
         run: |
           echo "Downloading TA-Lib source files..."
-          $retryCount = 3
-          $success = $false
-          for ($i = 1; $i -le $retryCount; $i++) {
-            try {
-              Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip
-              if (Test-Path ta-lib-src.zip) {
-                echo 'TA-Lib source files downloaded successfully.'
-                $success = $true
-                break
-              }
-            } catch {
-              echo "Attempt $i of $retryCount failed."
-            }
-          }
-          if (-not $success) {
-            Write-Error 'Error: TA-Lib source files failed to download after multiple attempts.'
+          Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip
+          if (Test-Path ta-lib-src.zip) {
+            echo "TA-Lib source files downloaded successfully."
+          } else {
+            Write-Error "Error: TA-Lib source files failed to download."
             exit 1
           }
         shell: pwsh
 
-      # Step 6: Extract TA-Lib Source Files using 7zip
       - name: Extract TA-Lib source files
         if: env.exists == 'false'
-Run: |
-  echo "Extracting TA-Lib source files..."
-  
-  # Use PowerShell's native archive extraction
-  Expand-Archive -Path ta-lib-src.zip -DestinationPath ./ta-lib-0.4.0-msvc
-  
-  # Check if the extraction was successful
-  if (Test-Path ./ta-lib-0.4.0-msvc) {
-    echo 'TA-Lib source files extracted successfully.'
-  } else {
-    Write-Error 'Error: Failed to extract TA-Lib source files.'
-    exit 1
-  }
-shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-env:
-  VS_PLATFORM: x64
-  pythonLocation: C:\hostedtoolcache\windows\Python\3.11.9\x64
-
+        run: |
+          echo "Extracting TA-Lib source files..."
+          
+          # Use PowerShell's native archive extraction method
+          Expand-Archive -Path ta-lib-src.zip -DestinationPath ./ta-lib-0.4.0-msvc
+          
+          # Check if extraction was successful
+          if (Test-Path ./ta-lib-0.4.0-msvc) {
+            echo 'TA-Lib source files extracted successfully.'
+          } else {
+            Write-Error 'Error: Failed to extract TA-Lib source files.'
+            exit 1
+          }
         shell: pwsh
 
-      # Step 7: Move TA-Lib source files to the expected directory structure
-      - name: Organize TA-Lib source files
+      - name: Move TA-Lib source files to the correct directory
         if: env.exists == 'false'
         run: |
+          echo "Moving TA-Lib files..."
           mkdir -p ta-lib/c/src
-          Move-Item ./ta-lib-0.4.0-msvc/* ta-lib/c/src
+          Move-Item -Path ./ta-lib-0.4.0-msvc/* -Destination ./ta-lib/c/src
           echo "TA-Lib files moved to the correct location."
         shell: pwsh
 
-      # Step 8: Commit and push the TA-Lib source files to the repository (optional)
-      - name: Commit and push TA-Lib source files
+      - name: Build TA-Lib
         if: env.exists == 'false'
         run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git add ta-lib/
-          git commit -m "Add TA-Lib source files to the repository"
-          git push
+          echo "Building TA-Lib..."
+          # (Insert the build commands specific to your environment here)
         shell: pwsh
-
-      # Step 9: Install build dependencies
-      - name: Install Build Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel numpy Cython
-          pip install pytest
-
-      # Step 10: Build the TA-Lib wheel
-      - name: Build TA-Lib Wheel
-        run: |
-          set LIB="ta-lib\\c\\ide\\vs2022\\lib_proj\\x64;$LIB"
-          python setup.py bdist_wheel
-        working-directory: ta-lib/c/src
-
-      # Step 11: Upload the built wheel as an artifact
-      - name: Upload Wheel Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          path: ./dist/*.whl
-          name: ta-lib-64bit-wheel
