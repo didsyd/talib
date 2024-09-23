@@ -1,68 +1,73 @@
-name: Build and Install TA-Lib
+name: Build and Extract TA-Lib
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Check if TA-Lib source files already exist
-        run: |
-          if (Test-Path ta-lib/c/src/ta_func.c) {
-            echo 'TA-Lib source files already exist, skipping download.'
-            echo "exists=true" >> $env:GITHUB_ENV
-          } else {
-            echo 'TA-Lib source files not found, proceeding to download.'
-            echo "exists=false" >> $env:GITHUB_ENV
-          }
-        shell: pwsh
+    - name: Check if TA-Lib source exists
+      shell: pwsh
+      run: |
+        if (Test-Path ta-lib/c/src/ta_func.c) {
+          echo 'TA-Lib source files already exist, skipping download.'
+          echo "exists=true" >> $env:GITHUB_ENV
+        } else {
+          echo 'TA-Lib source files not found, proceeding to download.'
+          echo "exists=false" >> $env:GITHUB_ENV
 
-      - name: Download TA-Lib source files if they do not exist
-        if: env.exists == 'false'
-        run: |
-          echo "Downloading TA-Lib source files..."
-          Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip
-          if (Test-Path ta-lib-src.zip) {
-            echo "TA-Lib source files downloaded successfully."
-          } else {
-            Write-Error "Error: TA-Lib source files failed to download."
-            exit 1
-          }
-        shell: pwsh
+    - name: Download TA-Lib source files
+      if: env.exists == 'false'
+      run: |
+        echo "Downloading TA-Lib source files..."
+        powershell -Command "Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip"
+        if (Test-Path ta-lib-src.zip) {
+          echo 'TA-Lib source files downloaded successfully.'
+        } else {
+          Write-Error 'Error: Failed to download TA-Lib source files.'
+          exit 1
+      shell: pwsh
 
-      - name: Extract TA-Lib source files
-        if: env.exists == 'false'
-        run: |
-          echo "Extracting TA-Lib source files..."
-          
-          # Use PowerShell's native archive extraction method
-          Expand-Archive -Path ta-lib-src.zip -DestinationPath ./ta-lib-0.4.0-msvc
-          
-          # Check if extraction was successful
-          if (Test-Path ./ta-lib-0.4.0-msvc) {
-            echo 'TA-Lib source files extracted successfully.'
-          } else {
-            Write-Error 'Error: Failed to extract TA-Lib source files.'
-            exit 1
-          }
-        shell: pwsh
+    - name: Extract TA-Lib source files
+      if: env.exists == 'false'
+      run: |
+        echo "Extracting TA-Lib source files..."
+        
+        # Ensure 7z is installed and in the PATH
+        $7zPath = "C:\Program Files\7-Zip\7z.exe"
+        
+        if (Test-Path $7zPath) {
+          & $7zPath x ta-lib-src.zip -o./ta-lib-0.4.0-msvc
+        } else {
+          Write-Error '7z is not installed or not found in the specified location.'
+          exit 1
+        }
+        
+        # Check if extraction was successful
+        if (Test-Path ./ta-lib-0.4.0-msvc) {
+          echo 'TA-Lib source files extracted successfully.'
+        } else {
+          Write-Error 'Error: Failed to extract TA-Lib source files.'
+          exit 1
+      shell: pwsh
 
-      - name: Move TA-Lib source files to the correct directory
-        if: env.exists == 'false'
-        run: |
-          echo "Moving TA-Lib files..."
-          mkdir -p ta-lib/c/src
-          Move-Item -Path ./ta-lib-0.4.0-msvc/* -Destination ./ta-lib/c/src
-          echo "TA-Lib files moved to the correct location."
-        shell: pwsh
+    - name: Move TA-Lib files
+      if: env.exists == 'false'
+      run: |
+        echo "Moving TA-Lib files to the correct location..."
+        Move-Item ta-lib-0.4.0-msvc/* ta-lib/c/src
+        echo 'TA-Lib files moved to ta-lib/c/src.'
+      shell: pwsh
 
-      - name: Build TA-Lib
-        if: env.exists == 'false'
-        run: |
-          echo "Building TA-Lib..."
-          # (Insert the build commands specific to your environment here)
-        shell: pwsh
+    - name: Final check
+      run: |
+        if (Test-Path ta-lib/c/src/ta_func.c) {
+          echo 'TA-Lib setup completed successfully.'
+        } else {
+          Write-Error 'Error: TA-Lib setup failed.'
+          exit 1
+      shell: pwsh
