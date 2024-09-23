@@ -1,76 +1,48 @@
-name: Build and Extract TA-Lib
+name: Build TA-Lib wheel for Windows 64-bit
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build:
+  build_amd64:
+    name: Build 64-bit TA-Lib Wheel
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4  # This checks out your repository
 
-    - name: Check if TA-Lib source exists
-      shell: pwsh
-      run: |
-        if (Test-Path ta-lib/c/src/ta_func.c) {
-          echo 'TA-Lib source files already exist, skipping download.'
-          echo "exists=true" >> $env:GITHUB_ENV
-        } else {
-          echo 'TA-Lib source files not found, proceeding to download.'
-          echo "exists=false" >> $env:GITHUB_ENV
-        }
-    - name: Download TA-Lib source files
-      if: env.exists == 'false'
-      run: |
-        echo "Downloading TA-Lib source files..."
-        powershell -Command "Invoke-WebRequest -Uri https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-msvc.zip -OutFile ta-lib-src.zip"
-        if (Test-Path ta-lib-src.zip) {
-          echo 'TA-Lib source files downloaded successfully.'
-        } else {
-          Write-Error 'Error: Failed to download TA-Lib source files.'
-          exit 1
-          }
-      shell: pwsh
+      - name: Install TA-Lib C library
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+          .\vcpkg\vcpkg install ta-lib:x64-windows
+          .\vcpkg\vcpkg integrate install
+          .\vcpkg\vcpkg list  # List installed packages for verification
 
-    - name: Extract TA-Lib source files
-      if: env.exists == 'false'
-      run: |
-        echo "Extracting TA-Lib source files..."
-        
-        # Ensure 7z is installed and in the PATH
-        $7zPath = "C:\Program Files\7-Zip\7z.exe"
-        
-        if (Test-Path $7zPath) {
-          & $7zPath x ta-lib-src.zip -o./ta-lib-0.4.0-msvc
-        } else {
-          Write-Error '7z is not installed or not found in the specified location.'
-          exit 1
-        }
-        
-        # Check if extraction was successful
-        if (Test-Path ./ta-lib-0.4.0-msvc) {
-          echo 'TA-Lib source files extracted successfully.'
-        } else {
-          Write-Error 'Error: Failed to extract TA-Lib source files.'
-          exit 1
-          }
-      shell: pwsh
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Use the latest Python 3 version
 
-    - name: Move TA-Lib files
-      if: env.exists == 'false'
-      run: |
-        echo "Moving TA-Lib files to the correct location..."
-        Move-Item ta-lib-0.4.0-msvc/* ta-lib/c/src
-        echo 'TA-Lib files moved to ta-lib/c/src.'
-      shell: pwsh
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel  # Upgrade pip, setuptools, and wheel
+          pip install --use-pep517 numpy Cython  # Install with PEP 517 support
 
-    - name: Final check
-      run: |
-        if (Test-Path ta-lib/c/src/ta_func.c) {
-          echo 'TA-Lib setup completed successfully.'
-        } else {
-          Write-Error 'Error: TA-Lib setup failed.'
-          exit 1
-          }
-      shell: pwsh
+      - name: List directory contents
+        run: dir  # Check the current directory structure
+
+      - name: Build TA-Lib wheel
+        run: python setup.py bdist_wheel -d ./output  # Specify output directory for the wheel
+
+      - name: Upload built wheel
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./output/*.whl  # Adjust to match your output directory
