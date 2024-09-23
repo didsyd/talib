@@ -19,7 +19,7 @@ jobs:
         } else {
           echo 'TA-Lib source files not found, proceeding to download.'
           echo "exists=false" >> $env:GITHUB_ENV
-
+        }
     - name: Download TA-Lib source files
       if: env.exists == 'false'
       run: |
